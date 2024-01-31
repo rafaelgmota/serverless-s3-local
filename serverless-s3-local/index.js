@@ -464,9 +464,13 @@ class ServerlessS3Local {
         }
 
         const bucketResource = this.getResourceForBucket(handlerBucketName);
-        const name = bucketResource
-          ? bucketResource.Properties.BucketName
-          : handlerBucketName;
+
+        let name = handlerBucketName;
+
+        if(bucketResource) {
+          name = bucketResource.Properties.BucketName || handlerBucketName.Ref;
+        }
+
         s3Events.forEach((existingEvent) => {
           const pattern = existingEvent.replace(/^s3:/, "").replace("*", ".*");
           eventHandlers.push(
@@ -505,9 +509,15 @@ class ServerlessS3Local {
   }
 
   getResourceForBucket(bucketName) {
-    const logicalResourceName = `S3Bucket${bucketName
-      .charAt(0)
-      .toUpperCase()}${bucketName.substr(1)}`;
+    let logicalResourceName = bucketName;
+    if(typeof bucketName === 'string') {
+      logicalResourceName = `S3Bucket${stringBucketName
+        .charAt(0)
+        .toUpperCase()}${stringBucketName.substr(1)}`;
+    } else if(typeof bucketName === 'object' && bucketName.Ref) {
+      logicalResourceName = bucketName.Ref;
+    }
+
     return this.service.resources && this.service.resources.Resources
       ? this.service.resources.Resources[logicalResourceName]
       : false;
